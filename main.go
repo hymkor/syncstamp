@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/md5"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -67,6 +68,8 @@ func findSameFileButTimeDiff(srcFiles []*File, dstFile *File) (*File, error) {
 	return nil, nil
 }
 
+var flagBatch = flag.Bool("batch", false, "output batchfile to stdout")
+
 func mains(args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("Usage: %s <SRC-DIR> <DST-DIR>", os.Args[0])
@@ -127,18 +130,25 @@ func mains(args []string) error {
 		if matchSrcFile == nil {
 			return nil
 		}
-		fmt.Printf("\n   %s %s\n",
-			matchSrcFile.ModTime().Format("2006/01/02 15:04:05"), matchSrcFile.Path)
-		fmt.Printf("-> %s %s\n",
-			dstFile.ModTime().Format("2006/01/02 15:04:05"), path)
+		if *flagBatch {
+			fmt.Printf("touch -r \"%s\" \"%s\"\n",
+				matchSrcFile.Path,
+				dstPath)
+		} else {
+			fmt.Printf("\n   %s %s\n",
+				matchSrcFile.ModTime().Format("2006/01/02 15:04:05"), matchSrcFile.Path)
+			fmt.Printf("vs %s %s\n",
+				dstFile.ModTime().Format("2006/01/02 15:04:05"), path)
+		}
 		return nil
 	})
 	return err
 }
 
 func main() {
-	if err := mains(os.Args[1:]); err != nil {
-		fmt.Println(os.Stderr, err.Error())
+	flag.Parse()
+	if err := mains(flag.Args()); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 }
