@@ -77,12 +77,12 @@ func mains(args []string) error {
 		return fmt.Errorf("Usage: %s <SRC-DIR> <DST-DIR>", os.Args[0])
 	}
 
-	srcPath := args[0]
-	if path, err := filepath.EvalSymlinks(srcPath); err == nil {
-		srcPath = path
+	srcRoot := args[0]
+	if path, err := filepath.EvalSymlinks(srcRoot); err == nil {
+		srcRoot = path
 	}
 	source := map[string][]*File{}
-	err := filepath.Walk(srcPath, func(path string, srcFile os.FileInfo, err error) error {
+	err := filepath.Walk(srcRoot, func(path string, srcFile os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -101,11 +101,11 @@ func mains(args []string) error {
 		return err
 	}
 
-	dstPath := args[1]
-	if path, err := filepath.EvalSymlinks(dstPath); err == nil {
-		dstPath = path
+	dstRoot := args[1]
+	if path, err := filepath.EvalSymlinks(dstRoot); err == nil {
+		dstRoot = path
 	}
-	err = filepath.Walk(dstPath, func(path string, dstFile os.FileInfo, err error) error {
+	err = filepath.Walk(dstRoot, func(path string, dstFile os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -135,7 +135,7 @@ func mains(args []string) error {
 		if *flagBatch {
 			fmt.Printf("touch -r \"%s\" \"%s\"\n",
 				matchSrcFile.Path,
-				dstPath)
+				path)
 		} else {
 			fmt.Printf("\n   %s %s\n",
 				matchSrcFile.ModTime().Format("2006/01/02 15:04:05"), matchSrcFile.Path)
@@ -149,7 +149,7 @@ func mains(args []string) error {
 				dstFile.ModTime().Format("2006/01/02 15:04:05"), path)
 
 			if *flagUpdate {
-				os.Chtimes(dstPath,
+				os.Chtimes(path,
 					matchSrcFile.ModTime(),
 					matchSrcFile.ModTime())
 			}
