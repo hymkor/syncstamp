@@ -70,6 +70,8 @@ func findSameFileButTimeDiff(srcFiles []*File, dstFile *File) (*File, error) {
 
 var flagBatch = flag.Bool("batch", false, "output batchfile to stdout")
 
+var flagUpdate = flag.Bool("update", false, "update destinate-file's timestamp same as source-file's one")
+
 func mains(args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("Usage: %s <SRC-DIR> <DST-DIR>", os.Args[0])
@@ -137,8 +139,20 @@ func mains(args []string) error {
 		} else {
 			fmt.Printf("\n   %s %s\n",
 				matchSrcFile.ModTime().Format("2006/01/02 15:04:05"), matchSrcFile.Path)
-			fmt.Printf("vs %s %s\n",
+			if *flagUpdate {
+				fmt.Print("->")
+			} else {
+				fmt.Print("vs")
+			}
+
+			fmt.Printf(" %s %s\n",
 				dstFile.ModTime().Format("2006/01/02 15:04:05"), path)
+
+			if *flagUpdate {
+				os.Chtimes(dstPath,
+					matchSrcFile.ModTime(),
+					matchSrcFile.ModTime())
+			}
 		}
 		return nil
 	})
