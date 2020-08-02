@@ -12,10 +12,9 @@ import (
 )
 
 type File struct {
-	Path  string
-	Stamp time.Time
-	Size  int64
-	hash  []byte
+	os.FileInfo
+	Path string
+	hash []byte
 }
 
 func hash(path string) ([]byte, error) {
@@ -43,6 +42,31 @@ func (f *File) Hash() ([]byte, error) {
 	return f.hash, nil
 }
 
+func findSameFileButTimeDiff(srcFiles []*File, dstFile *File) (*File, error) {
+	dstTime := dstFile.ModTime().Truncate(time.Second)
+	for _, srcFile := range srcFiles {
+		if dstFile.Size() != srcFile.Size() {
+			continue
+		}
+		srcTime := srcFile.ModTime().Truncate(time.Second)
+		if srcTime.Equal(dstTime) {
+			continue
+		}
+		srcHash, err := srcFile.Hash()
+		if err != nil {
+			return nil, err
+		}
+		dstHash, err := dstFile.Hash()
+		if err != nil {
+			return nil, err
+		}
+		if bytes.Equal(srcHash, dstHash) {
+			return srcFile, nil
+		}
+	}
+	return nil, nil
+}
+
 func mains(args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("Usage: %s <SRC-DIR> <DST-DIR>", os.Args[0])
@@ -53,24 +77,19 @@ func mains(args []string) error {
 		srcPath = path
 	}
 	source := map[string][]*File{}
-	err := filepath.Walk(srcPath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(srcPath, func(path string, srcFile os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if info.IsDir() {
+		if srcFile.IsDir() {
 			if name := filepath.Base(path); name[0] == '.' {
 				return filepath.SkipDir
 			}
 			return nil
 		}
 		name := strings.ToUpper(filepath.Base(path))
-		entry := &File{Path: path, Stamp: info.ModTime(), Size: info.Size()}
-		s, ok := source[name]
-		if ok {
-			source[name] = append(s, entry)
-		} else {
-			source[name] = []*File{entry}
-		}
+		entry := &File{Path: path, FileInfo: srcFile}
+		source[name] = append(source[name], entry)
 		return nil
 	})
 	if err != nil {
@@ -81,11 +100,11 @@ func mains(args []string) error {
 	if path, err := filepath.EvalSymlinks(dstPath); err == nil {
 		dstPath = path
 	}
-	err = filepath.Walk(dstPath, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(dstPath, func(path string, dstFile os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if info.IsDir() {
+		if dstFile.IsDir() {
 			if name := filepath.Base(path); name[0] == '.' {
 				return filepath.SkipDir
 			}
@@ -93,43 +112,25 @@ func mains(args []string) error {
 		}
 		name := strings.ToUpper(filepath.Base(path))
 
-		s, ok := source[name]
+		srcFiles, ok := source[name]
 		if !ok {
 			return nil
 		}
-		var s1 *File
-		var dstHash []byte
-		for _, s2 := range s {
-			if info.Size() != s2.Size {
-				continue
-			}
-			if dstHash == nil {
-				var err error
-				dstHash, err = hash(path)
-				if err != nil {
-					return err
-				}
-			}
-			hash2, err := s2.Hash()
-			if err != nil {
-				return err
-			}
-			if bytes.Equal(hash2, dstHash) {
-				s1 = s2
-				break
-			}
+
+		matchSrcFile, err := findSameFileButTimeDiff(
+			srcFiles,
+			&File{Path: path, FileInfo: dstFile})
+
+		if err != nil {
+			return err
 		}
-		if s1 == nil {
+		if matchSrcFile == nil {
 			return nil
 		}
-		srcTime := s1.Stamp.Truncate(time.Second)
-		dstTime := info.ModTime().Truncate(time.Second)
-		if !srcTime.Equal(dstTime) {
-			fmt.Printf("\n   %s %s\n",
-				srcTime.Format("2006/01/02 15:04:05"), s1.Path)
-			fmt.Printf("-> %s %s\n",
-				dstTime.Format("2006/01/02 15:04:05"), path)
-		}
+		fmt.Printf("\n   %s %s\n",
+			matchSrcFile.ModTime().Format("2006/01/02 15:04:05"), matchSrcFile.Path)
+		fmt.Printf("-> %s %s\n",
+			dstFile.ModTime().Format("2006/01/02 15:04:05"), path)
 		return nil
 	})
 	return err
