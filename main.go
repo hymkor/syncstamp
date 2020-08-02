@@ -82,6 +82,7 @@ func mains(args []string) error {
 		srcRoot = path
 	}
 	source := map[string][]*File{}
+	srcCount := 0
 	err := filepath.Walk(srcRoot, func(path string, srcFile os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -95,6 +96,7 @@ func mains(args []string) error {
 		name := strings.ToUpper(filepath.Base(path))
 		entry := &File{Path: path, FileInfo: srcFile}
 		source[name] = append(source[name], entry)
+		srcCount++
 		return nil
 	})
 	if err != nil {
@@ -105,6 +107,8 @@ func mains(args []string) error {
 	if path, err := filepath.EvalSymlinks(dstRoot); err == nil {
 		dstRoot = path
 	}
+	dstCount := 0
+	updCount := 0
 	err = filepath.Walk(dstRoot, func(path string, dstFile os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -116,6 +120,7 @@ func mains(args []string) error {
 			return nil
 		}
 		name := strings.ToUpper(filepath.Base(path))
+		dstCount++
 
 		srcFiles, ok := source[name]
 		if !ok {
@@ -137,25 +142,31 @@ func mains(args []string) error {
 				matchSrcFile.Path,
 				path)
 		} else {
-			fmt.Printf("\n   %s %s\n",
+			fmt.Printf("   %s %s\n",
 				matchSrcFile.ModTime().Format("2006/01/02 15:04:05"), matchSrcFile.Path)
 			if *flagUpdate {
 				fmt.Print("->")
 			} else {
-				fmt.Print("vs")
+				fmt.Print("!=")
 			}
 
-			fmt.Printf(" %s %s\n",
+			fmt.Printf(" %s %s\n\n",
 				dstFile.ModTime().Format("2006/01/02 15:04:05"), path)
 
 			if *flagUpdate {
 				os.Chtimes(path,
 					matchSrcFile.ModTime(),
 					matchSrcFile.ModTime())
+				updCount++
 			}
 		}
 		return nil
 	})
+	fmt.Fprintf(os.Stderr, "    Read %4d files on %s.\n", srcCount, srcRoot)
+	fmt.Fprintf(os.Stderr, "Compared %4d files on %s.\n", dstCount, dstRoot)
+	if updCount > 0 {
+		fmt.Fprintf(os.Stderr, " Touched %4d files on %s.\n", updCount, dstRoot)
+	}
 	return err
 }
 
