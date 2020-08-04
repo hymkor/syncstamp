@@ -72,6 +72,11 @@ var flagBatch = flag.Bool("batch", false, "output batchfile to stdout")
 
 var flagUpdate = flag.Bool("update", false, "update destinate-file's timestamp same as source-file's one")
 
+type keyT struct {
+	Name string
+	Size int64
+}
+
 func mains(args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("Usage: %s <SRC-DIR> <DST-DIR>", os.Args[0])
@@ -81,7 +86,7 @@ func mains(args []string) error {
 	if path, err := filepath.EvalSymlinks(srcRoot); err == nil {
 		srcRoot = path
 	}
-	source := map[string][]*File{}
+	source := map[keyT][]*File{}
 	srcCount := 0
 	err := filepath.Walk(srcRoot, func(path string, srcFile os.FileInfo, err error) error {
 		if err != nil {
@@ -93,10 +98,10 @@ func mains(args []string) error {
 			}
 			return nil
 		}
-		key := fmt.Sprintf("%s\t%d",
-			strings.ToUpper(filepath.Base(path)),
-			srcFile.Size())
-
+		key := keyT{
+			Name: strings.ToUpper(filepath.Base(path)),
+			Size: srcFile.Size(),
+		}
 		entry := &File{Path: path, FileInfo: srcFile}
 		source[key] = append(source[key], entry)
 		srcCount++
@@ -122,11 +127,12 @@ func mains(args []string) error {
 			}
 			return nil
 		}
-		key := fmt.Sprintf("%s\t%d",
-			strings.ToUpper(filepath.Base(path)),
-			dstFile.Size())
-
 		dstCount++
+
+		key := keyT{
+			Name: strings.ToUpper(filepath.Base(path)),
+			Size: dstFile.Size(),
+		}
 
 		srcFiles, ok := source[key]
 		if !ok {
