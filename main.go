@@ -18,6 +18,8 @@ type File struct {
 	hash []byte
 }
 
+var openCount int = 0
+
 func hash(path string) ([]byte, error) {
 	h := md5.New()
 
@@ -28,6 +30,7 @@ func hash(path string) ([]byte, error) {
 	defer fd.Close()
 
 	io.Copy(h, fd)
+	openCount++
 
 	return h.Sum(nil)[:], nil
 }
@@ -46,9 +49,6 @@ func (f *File) Hash() ([]byte, error) {
 func findSameFileButTimeDiff(srcFiles []*File, dstFile *File) (*File, error) {
 	dstTime := dstFile.ModTime().Truncate(time.Second)
 	for _, srcFile := range srcFiles {
-		if dstFile.Size() != srcFile.Size() {
-			continue
-		}
 		srcTime := srcFile.ModTime().Truncate(time.Second)
 		if srcTime.Equal(dstTime) {
 			continue
@@ -93,9 +93,12 @@ func mains(args []string) error {
 			}
 			return nil
 		}
-		name := strings.ToUpper(filepath.Base(path))
+		key := fmt.Sprintf("%s\t%d",
+			strings.ToUpper(filepath.Base(path)),
+			srcFile.Size())
+
 		entry := &File{Path: path, FileInfo: srcFile}
-		source[name] = append(source[name], entry)
+		source[key] = append(source[key], entry)
 		srcCount++
 		return nil
 	})
@@ -119,10 +122,13 @@ func mains(args []string) error {
 			}
 			return nil
 		}
-		name := strings.ToUpper(filepath.Base(path))
+		key := fmt.Sprintf("%s\t%d",
+			strings.ToUpper(filepath.Base(path)),
+			dstFile.Size())
+
 		dstCount++
 
-		srcFiles, ok := source[name]
+		srcFiles, ok := source[key]
 		if !ok {
 			return nil
 		}
@@ -167,6 +173,7 @@ func mains(args []string) error {
 	if updCount > 0 {
 		fmt.Fprintf(os.Stderr, " Touched %4d files on %s.\n", updCount, dstRoot)
 	}
+	fmt.Fprintf(os.Stderr, "    Open %4d files.\n", openCount)
 	return err
 }
 
