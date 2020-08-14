@@ -89,22 +89,17 @@ type keyT struct {
 	Size int64
 }
 
-func mains(args []string) error {
-	if len(args) < 2 {
-		return fmt.Errorf("Usage: %s <SRC-DIR> <DST-DIR>", os.Args[0])
+func GetTree(root string) (map[keyT][]*File, int, error) {
+	if path, err := filepath.EvalSymlinks(root); err == nil {
+		root = path
 	}
-
-	srcRoot := args[0]
-	if path, err := filepath.EvalSymlinks(srcRoot); err == nil {
-		srcRoot = path
-	}
-	source := map[keyT][]*File{}
-	srcCount := 0
-	err := filepath.Walk(srcRoot, func(path string, srcFile os.FileInfo, err error) error {
+	files := map[keyT][]*File{}
+	count := 0
+	err := filepath.Walk(root, func(path string, file1 os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if srcFile.IsDir() {
+		if file1.IsDir() {
 			if name := filepath.Base(path); name[0] == '.' {
 				return filepath.SkipDir
 			}
@@ -112,13 +107,24 @@ func mains(args []string) error {
 		}
 		key := keyT{
 			Name: strings.ToUpper(filepath.Base(path)),
-			Size: srcFile.Size(),
+			Size: file1.Size(),
 		}
-		entry := &File{Path: path, FileInfo: srcFile}
-		source[key] = append(source[key], entry)
-		srcCount++
+		entry := &File{Path: path, FileInfo: file1}
+		files[key] = append(files[key], entry)
+		count++
 		return nil
 	})
+	return files, count, err
+}
+
+func mains(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("Usage: %s <SRC-DIR> <DST-DIR>", os.Args[0])
+	}
+
+	srcRoot := args[0]
+
+	source, srcCount, err := GetTree(srcRoot)
 	if err != nil {
 		return err
 	}
