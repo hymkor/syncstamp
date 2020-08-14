@@ -89,13 +89,11 @@ type keyT struct {
 	Size int64
 }
 
-func GetTree(root string) (map[keyT][]*File, int, error) {
+func walk(root string, callback func(*keyT, *File) error) error {
 	if path, err := filepath.EvalSymlinks(root); err == nil {
 		root = path
 	}
-	files := map[keyT][]*File{}
-	count := 0
-	err := filepath.Walk(root, func(path string, file1 os.FileInfo, err error) error {
+	return filepath.Walk(root, func(path string, file1 os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -105,12 +103,21 @@ func GetTree(root string) (map[keyT][]*File, int, error) {
 			}
 			return nil
 		}
-		key := keyT{
+		key := &keyT{
 			Name: strings.ToUpper(filepath.Base(path)),
 			Size: file1.Size(),
 		}
-		entry := &File{Path: path, FileInfo: file1}
-		files[key] = append(files[key], entry)
+		val := &File{Path: path, FileInfo: file1}
+		return callback(key, val)
+	})
+}
+
+func getTree(root string) (map[keyT][]*File, int, error) {
+	files := map[keyT][]*File{}
+	count := 0
+
+	err := walk(root, func(key *keyT, value *File) error {
+		files[*key] = append(files[*key], value)
 		count++
 		return nil
 	})
@@ -124,43 +131,26 @@ func mains(args []string) error {
 
 	srcRoot := args[0]
 
-	source, srcCount, err := GetTree(srcRoot)
+	source, srcCount, err := getTree(srcRoot)
 	if err != nil {
 		return err
 	}
 
 	dstRoot := args[1]
-	if path, err := filepath.EvalSymlinks(dstRoot); err == nil {
-		dstRoot = path
-	}
 	dstCount := 0
 	updCount := 0
-	err = filepath.Walk(dstRoot, func(path string, dstFile os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if dstFile.IsDir() {
-			if name := filepath.Base(path); name[0] == '.' {
-				return filepath.SkipDir
-			}
-			return nil
-		}
+
+	err = walk(dstRoot, func(key *keyT, val *File) error {
 		dstCount++
 
-		key := keyT{
-			Name: strings.ToUpper(filepath.Base(path)),
-			Size: dstFile.Size(),
-		}
-
-		srcFiles, ok := source[key]
+		srcFiles, ok := source[*key]
 		if !ok {
 			return nil
 		}
 
 		matchSrcFile, err := findSameFileButTimeDiff(
 			srcFiles,
-			&File{Path: path, FileInfo: dstFile})
-
+			val)
 		if err != nil {
 			return err
 		}
@@ -170,7 +160,7 @@ func mains(args []string) error {
 		if *flagBatch {
 			fmt.Printf("touch -r \"%s\" \"%s\"\n",
 				matchSrcFile.Path,
-				path)
+				val.Path)
 		} else {
 			fmt.Printf("   %s %s\n",
 				matchSrcFile.ModTime().Format("2006/01/02 15:04:05"), matchSrcFile.Path)
@@ -181,10 +171,10 @@ func mains(args []string) error {
 			}
 
 			fmt.Printf(" %s %s\n\n",
-				dstFile.ModTime().Format("2006/01/02 15:04:05"), path)
+				val.ModTime().Format("2006/01/02 15:04:05"), val.Path)
 
 			if *flagUpdate {
-				os.Chtimes(path,
+				os.Chtimes(val.Path,
 					matchSrcFile.ModTime(),
 					matchSrcFile.ModTime())
 				updCount++
