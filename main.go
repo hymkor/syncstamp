@@ -46,22 +46,34 @@ func (f *File) Hash() ([]byte, error) {
 	return f.hash, nil
 }
 
+func (this *File) Equal(other *File) (bool, error) {
+	hash1, err := this.Hash()
+	if err != nil {
+		return false, err
+	}
+	hash2, err := other.Hash()
+	if err != nil {
+		return false, err
+	}
+	return bytes.Equal(hash1, hash2), nil
+}
+
+func (this *File) Sametime(other *File) bool {
+	time1 := this.ModTime().Truncate(time.Second)
+	time2 := other.ModTime().Truncate(time.Second)
+	return time1.Equal(time2)
+}
+
 func findSameFileButTimeDiff(srcFiles []*File, dstFile *File) (*File, error) {
-	dstTime := dstFile.ModTime().Truncate(time.Second)
 	for _, srcFile := range srcFiles {
-		srcTime := srcFile.ModTime().Truncate(time.Second)
-		if srcTime.Equal(dstTime) {
+		if srcFile.Sametime(dstFile) {
 			continue
 		}
-		srcHash, err := srcFile.Hash()
+		equal, err := srcFile.Equal(dstFile)
 		if err != nil {
 			return nil, err
 		}
-		dstHash, err := dstFile.Hash()
-		if err != nil {
-			return nil, err
-		}
-		if bytes.Equal(srcHash, dstHash) {
+		if equal {
 			return srcFile, nil
 		}
 	}
