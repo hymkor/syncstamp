@@ -94,14 +94,18 @@ func Walk(root string, callback func(*Key, *File) error) error {
 	})
 }
 
-func GetTree(root string) (map[Key][]*File, int, error) {
-	files := map[Key][]*File{}
+func ReadTree(root string, files map[Key][]*File) (int, error) {
 	count := 0
-
 	err := Walk(root, func(key *Key, value *File) error {
 		files[*key] = append(files[*key], value)
 		count++
 		return nil
 	})
+	return count, err
+}
+
+func GetTree(root string) (map[Key][]*File, int, error) {
+	files := map[Key][]*File{}
+	count, err := ReadTree(root, files)
 	return files, count, err
 }
