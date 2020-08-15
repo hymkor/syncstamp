@@ -4,9 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/zat-kaoru-hayama/syncstamp/dupfile"
 )
 
-func findSameFileButTimeDiff(srcFiles []*File, dstFile *File) (*File, error) {
+func findSameFileButTimeDiff(srcFiles []*dupfile.File, dstFile *dupfile.File) (*dupfile.File, error) {
 	for _, srcFile := range srcFiles {
 		if srcFile.Sametime(dstFile) {
 			continue
@@ -36,12 +38,12 @@ func mains(args []string) error {
 	dstCount := 0
 	updCount := 0
 
-	source, srcCount, err := getTree(srcRoot)
+	source, srcCount, err := dupfile.GetTree(srcRoot)
 	if err != nil {
 		return err
 	}
 
-	err = walk(dstRoot, func(key *keyT, val *File) error {
+	err = dupfile.Walk(dstRoot, func(key *dupfile.Key, val *dupfile.File) error {
 		dstCount++
 
 		srcFiles, ok := source[*key]
@@ -88,7 +90,7 @@ func mains(args []string) error {
 	if updCount > 0 {
 		fmt.Fprintf(os.Stderr, " Touched %4d files on %s.\n", updCount, dstRoot)
 	}
-	fmt.Fprintf(os.Stderr, "    Open %4d files.\n", openCount)
+	fmt.Fprintf(os.Stderr, "    Open %4d files.\n", dupfile.OpenCount())
 	return err
 }
 

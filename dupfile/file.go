@@ -1,4 +1,4 @@
-package main
+package dupfile
 
 import (
 	"bytes"
@@ -17,6 +17,10 @@ type File struct {
 }
 
 var openCount int = 0
+
+func OpenCount() int {
+	return openCount
+}
 
 func hash(path string) ([]byte, error) {
 	h := md5.New()
@@ -62,12 +66,12 @@ func (this *File) Sametime(other *File) bool {
 	return time1.Equal(time2)
 }
 
-type keyT struct {
+type Key struct {
 	Name string
 	Size int64
 }
 
-func walk(root string, callback func(*keyT, *File) error) error {
+func Walk(root string, callback func(*Key, *File) error) error {
 	if path, err := filepath.EvalSymlinks(root); err == nil {
 		root = path
 	}
@@ -81,7 +85,7 @@ func walk(root string, callback func(*keyT, *File) error) error {
 			}
 			return nil
 		}
-		key := &keyT{
+		key := &Key{
 			Name: strings.ToUpper(filepath.Base(path)),
 			Size: file1.Size(),
 		}
@@ -90,11 +94,11 @@ func walk(root string, callback func(*keyT, *File) error) error {
 	})
 }
 
-func getTree(root string) (map[keyT][]*File, int, error) {
-	files := map[keyT][]*File{}
+func GetTree(root string) (map[Key][]*File, int, error) {
+	files := map[Key][]*File{}
 	count := 0
 
-	err := walk(root, func(key *keyT, value *File) error {
+	err := Walk(root, func(key *Key, value *File) error {
 		files[*key] = append(files[*key], value)
 		count++
 		return nil
