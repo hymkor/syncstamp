@@ -1,13 +1,15 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/zat-kaoru-hayama/syncstamp/dupfile"
 )
 
-func mains(args []string) error {
+func mains(args []string, w io.Writer) error {
 	files := map[dupfile.Key][]*dupfile.File{}
 	count := 0
 	for _, arg1 := range args {
@@ -34,16 +36,29 @@ func mains(args []string) error {
 				continue
 			}
 			for _, file1 := range dup1 {
-				fmt.Printf("rem \"%s\"\r\n", file1.Path)
+				fmt.Fprintf(w, "rem \"%s\"\r\n", file1.Path)
 			}
 		}
-		fmt.Println()
+		fmt.Fprintln(w)
 	}
 	return nil
 }
 
+var flagTee = flag.String("tee", "", "filename to tee output")
+
 func main() {
-	if err := mains(os.Args[1:]); err != nil {
+	flag.Parse()
+	var out io.Writer = os.Stdout
+	if *flagTee != "" {
+		fd, err := os.Create(*flagTee)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(1)
+		}
+		defer fd.Close()
+		out = io.MultiWriter(fd, os.Stdout)
+	}
+	if err := mains(flag.Args(), out); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
