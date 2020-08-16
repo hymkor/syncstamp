@@ -34,7 +34,7 @@ func mains(args []string) error {
 				continue
 			}
 			for _, file1 := range dup1 {
-				fmt.Printf("rem \"%s\"\n", file1.Path)
+				fmt.Printf("rem \"%s\"\r\n", file1.Path)
 			}
 		}
 		fmt.Println()
