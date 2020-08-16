@@ -3,13 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/zat-kaoru-hayama/syncstamp/dupfile"
+	"github.com/zetamatta/go-mbcs"
 )
 
-func mains(args []string, w io.Writer) error {
+func mains(args []string, printer func(string) error) error {
 	files := map[dupfile.Key][]*dupfile.File{}
 	count := 0
 	for _, arg1 := range args {
@@ -36,10 +36,15 @@ func mains(args []string, w io.Writer) error {
 				continue
 			}
 			for _, file1 := range dup1 {
-				fmt.Fprintf(w, "rem \"%s\"\r\n", file1.Path)
+				err := printer(fmt.Sprintf("rem \"%s\"", file1.Path))
+				if err != nil {
+					return err
+				}
 			}
 		}
-		fmt.Fprintln(w)
+		if err := printer(""); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -48,7 +53,7 @@ var flagTee = flag.String("tee", "", "filename to tee output")
 
 func main() {
 	flag.Parse()
-	var out io.Writer = os.Stdout
+	printer := func(line string) error { fmt.Println(line); return nil }
 	if *flagTee != "" {
 		fd, err := os.Create(*flagTee)
 		if err != nil {
@@ -56,9 +61,18 @@ func main() {
 			os.Exit(1)
 		}
 		defer fd.Close()
-		out = io.MultiWriter(fd, os.Stdout)
+		printer = func(line string) error {
+			fmt.Println(line)
+			sjis, err := mbcs.UtoAc(line)
+			if err != nil {
+				return err
+			}
+			fd.Write(sjis)
+			fd.Write([]byte{'\r', '\n'})
+			return nil
+		}
 	}
-	if err := mains(flag.Args(), out); err != nil {
+	if err := mains(flag.Args(), printer); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
