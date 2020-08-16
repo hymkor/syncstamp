@@ -72,6 +72,14 @@ type Key struct {
 }
 
 func Walk(root string, callback func(*Key, *File) error) error {
+	root = filepath.Clean(root)
+	if root == "." {
+		wd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		root = wd
+	}
 	if path, err := filepath.EvalSymlinks(root); err == nil {
 		root = path
 	}
