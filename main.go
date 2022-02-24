@@ -77,10 +77,14 @@ func mains(args []string) error {
 				val.ModTime().Format("2006/01/02 15:04:05"), val.Path)
 
 			if *flagUpdate {
-				os.Chtimes(val.Path,
+				err := os.Chtimes(val.Path,
 					matchSrcFile.ModTime(),
 					matchSrcFile.ModTime())
-				updCount++
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "%s: %w\n", val.Path, err)
+				} else {
+					updCount++
+				}
 			}
 		}
 		return nil
