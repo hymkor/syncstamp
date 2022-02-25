@@ -65,8 +65,10 @@ func mains(args []string) error {
 				matchSrcFile.Path,
 				val.Path)
 		} else {
-			fmt.Printf("   %s %s\n",
-				matchSrcFile.ModTime().Format("2006/01/02 15:04:05"), matchSrcFile.Path)
+			for _,s := range srcFiles {
+				fmt.Printf("   %s %s\n",
+					s.ModTime().Format("2006/01/02 15:04:05"), s.Path)
+			}
 			if *flagUpdate {
 				fmt.Print("->")
 			} else {
