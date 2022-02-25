@@ -31,7 +31,9 @@ var flagUpdate = flag.Bool("update", false, "update destinate-file's timestamp s
 
 func mains(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("Usage: %s <SRC-DIR> <DST-DIR>", os.Args[0])
+		fmt.Printf("Usage: %s <SRC-DIR> <DST-DIR>\n", os.Args[0])
+		flag.PrintDefaults()
+		return nil
 	}
 
 	srcRoot := args[0]
