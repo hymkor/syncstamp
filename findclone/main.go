@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/zat-kaoru-hayama/syncstamp/dupfile"
+	"github.com/hymkor/syncstamp/dupfile"
 	"github.com/zetamatta/go-mbcs"
 )
 

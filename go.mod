@@ -1,4 +1,4 @@
-module github.com/zat-kaoru-hayama/syncstamp
+module github.com/hymkor/syncstamp
 
 go 1.17
 
