@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hymkor/syncstamp/dupfile"
+	"github.com/hymkor/syncstamp/internal/dupfile"
 	"github.com/nyaosorg/go-windows-mbcs"
 )
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hymkor/syncstamp/dupfile"
+	"github.com/hymkor/syncstamp/internal/dupfile"
 )
 
 func findSameFileButTimeDiff(srcFiles []*dupfile.File, dstFile *dupfile.File) (sameTimes, diffTimes []*dupfile.File, err error) {
