@@ -10,10 +10,10 @@ import (
 )
 
 func mains(args []string, printer func(string) error) error {
-	files := map[dupfile.Key][]*dupfile.File{}
+	files := dupfile.NewTree()
 	count := 0
 	for _, arg1 := range args {
-		count1, err := dupfile.ReadTree(arg1, files)
+		count1, err := files.Read(arg1)
 		if err != nil {
 			return err
 		}

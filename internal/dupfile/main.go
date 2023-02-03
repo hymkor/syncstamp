@@ -102,18 +102,18 @@ func Walk(root string, callback func(*Key, *File) error) error {
 	})
 }
 
-func ReadTree(root string, files map[Key][]*File) (int, error) {
+type Tree map[Key][]*File
+
+func (t Tree) Read(root string) (int, error) {
 	count := 0
 	err := Walk(root, func(key *Key, value *File) error {
-		files[*key] = append(files[*key], value)
+		t[*key] = append(t[*key], value)
 		count++
 		return nil
 	})
 	return count, err
 }
 
-func GetTree(root string) (map[Key][]*File, int, error) {
-	files := map[Key][]*File{}
-	count, err := ReadTree(root, files)
-	return files, count, err
+func NewTree() Tree {
+	return Tree(make(map[Key][]*File))
 }

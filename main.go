@@ -41,7 +41,8 @@ func mains(args []string) error {
 	dstCount := 0
 	updCount := 0
 
-	source, srcCount, err := dupfile.GetTree(srcRoot)
+	source := dupfile.NewTree()
+	srcCount, err := source.Read(srcRoot)
 	if err != nil {
 		return err
 	}
