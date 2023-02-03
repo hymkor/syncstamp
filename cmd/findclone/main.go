@@ -9,6 +9,10 @@ import (
 	"github.com/nyaosorg/go-windows-mbcs"
 )
 
+var (
+	flagKeepLast = flag.Bool("keep-last", false, "output DEL except for last one")
+)
+
 func mains(args []string, printer func(string) error) error {
 	files := dupfile.NewTree()
 	count := 0
@@ -35,8 +39,13 @@ func mains(args []string, printer func(string) error) error {
 			if len(dup1) <= 1 {
 				continue
 			}
-			for _, file1 := range dup1 {
-				err := printer(fmt.Sprintf("rem \"%s\"", file1.Path))
+			for i, file1 := range dup1 {
+				var err error
+				if *flagKeepLast && i < len(dup1)-1 {
+					err = printer(fmt.Sprintf("del \"%s\"", file1.Path))
+				} else {
+					err = printer(fmt.Sprintf("rem \"%s\"", file1.Path))
+				}
 				if err != nil {
 					return err
 				}
