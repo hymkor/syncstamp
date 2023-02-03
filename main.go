@@ -87,7 +87,7 @@ func mains(args []string) error {
 					fmt.Fprintf(os.Stderr, "%s: %w\n", val.Path, err)
 				} else {
 					fmt.Printf("touch -r %s \"%s\"\n",
-						newTime.Format("200601021504.05"),val.Path)
+						newTime.Format("200601021504.05"), val.Path)
 					updCount++
 				}
 			}
