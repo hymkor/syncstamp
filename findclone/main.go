@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/hymkor/syncstamp/dupfile"
-	"github.com/zetamatta/go-mbcs"
+	"github.com/nyaosorg/go-windows-mbcs"
 )
 
 func mains(args []string, printer func(string) error) error {
@@ -63,7 +63,7 @@ func main() {
 		defer fd.Close()
 		printer = func(line string) error {
 			fmt.Println(line)
-			sjis, err := mbcs.UtoAc(line)
+			sjis, err := mbcs.UtoA(line, mbcs.ACP)
 			if err != nil {
 				return err
 			}
