@@ -4,8 +4,16 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/hymkor/syncstamp/internal/dupfile"
+)
+
+var (
+	flagBatch  = flag.Bool("batch", false, "output batchfile to stdout")
+	flagDryRun = flag.Bool("dry-run", false, "dry-run")
+	flagOldest = flag.Bool("oldest", false, "update timestamps of source and destinate files all same as the oldest one")
+	flagUpdate = flag.Bool("update", false, "update destinate-file's timestamp same as source-file's one")
 )
 
 func findSameFileButTimeDiff(srcFiles []*dupfile.File, dstFile *dupfile.File) (sameTimes, diffTimes []*dupfile.File, err error) {
@@ -25,9 +33,20 @@ func findSameFileButTimeDiff(srcFiles []*dupfile.File, dstFile *dupfile.File) (s
 	return
 }
 
-var flagBatch = flag.Bool("batch", false, "output batchfile to stdout")
-
-var flagUpdate = flag.Bool("update", false, "update destinate-file's timestamp same as source-file's one")
+func touch(path string, stamp time.Time, count *int) {
+	var err error
+	if !*flagDryRun {
+		err = os.Chtimes(path, stamp, stamp)
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %w\n", path, err)
+	} else {
+		fmt.Printf("touch -r %s \"%s\"\n", stamp.Format("200601021504.05"), path)
+		if count != nil {
+			*count++
+		}
+	}
+}
 
 func mains(args []string) error {
 	if len(args) < 2 {
@@ -81,16 +100,23 @@ func mains(args []string) error {
 					d.ModTime().Format("2006/01/02 15:04:05"), d.Path)
 			}
 
-			if *flagUpdate {
-				newTime := diffTimes[0].ModTime()
-				err := os.Chtimes(val.Path, newTime, newTime)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "%s: %w\n", val.Path, err)
-				} else {
-					fmt.Printf("touch -r %s \"%s\"\n",
-						newTime.Format("200601021504.05"), val.Path)
-					updCount++
+			if *flagOldest {
+				stamp := val.ModTime()
+				for _, p := range srcFiles {
+					if tm := p.ModTime(); tm.Before(stamp) {
+						stamp = tm
+					}
 				}
+				if val.ModTime() != stamp {
+					touch(val.Path, stamp, &updCount)
+				}
+				for _, p := range srcFiles {
+					if p.ModTime() != stamp {
+						touch(p.Path, stamp, &updCount)
+					}
+				}
+			} else if *flagUpdate {
+				touch(val.Path, diffTimes[0].ModTime(), &updCount)
 			}
 			fmt.Println()
 		}
