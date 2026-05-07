@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "homepage": "https://github.com/hymkor/syncstamp",
+    "license": "MIT License",
+    "architecture": {
+        "32bit": {
+            "url": "https://github.com/hymkor/syncstamp/releases/download/v0.2.0/syncstamp-v0.2.0-windows-386.zip",
+            "hash": "cf09ea9fd9db129ef952f60bcb922d090bad8b6e5fe4b7e52e8f7b014e6f6900"
+        },
+        "64bit": {
+            "url": "https://github.com/hymkor/syncstamp/releases/download/v0.2.0/syncstamp-v0.2.0-windows-amd64.zip",
+            "hash": "37dfcda7c6b2a392eed9141c0b90244405caa35c131ea2b24e8b816dea19d50d"
+        }
+    },
+    "bin": "syncstamp.exe",
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "32bit": {
+                "url": "https://github.com/hymkor/syncstamp/releases/download/v$version/syncstamp-v$version-windows-386.zip"
+            },
+            "64bit": {
+                "url": "https://github.com/hymkor/syncstamp/releases/download/v$version/syncstamp-v$version-windows-amd64.zip"
+            }
+        }
+    }
+}
